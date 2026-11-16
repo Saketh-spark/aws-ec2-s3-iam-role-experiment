@@ -21,7 +21,6 @@ A complete, production-grade implementation guide and documentation repository d
 - [Step-by-Step Implementation](#step-by-step-implementation)
 - [AWS CLI Commands Reference](#aws-cli-commands-reference)
 - [Verification & Expected Outputs](#verification--expected-outputs)
-- [Screenshots & Visual Evidence](#screenshots--visual-evidence)
 - [Results](#results)
 - [Conclusion](#conclusion)
 - [Important Security Considerations](#important-security-considerations)
@@ -81,52 +80,6 @@ To configure, attach, and validate an AWS IAM Role with a fine-grained read-only
 ---
 
 ## Architecture Overview
-
-### Visual Architecture Diagram (Mermaid)
-
-```mermaid
-flowchart TD
-    subgraph AWS_Control_Plane["AWS Identity & Access Management (IAM)"]
-        Role["IAM Role: EC2-S3-ReadOnly-Role"]
-        TrustPolicy["Trust Policy: ec2.amazonaws.com"]
-        PermPolicy["Permission Policy: EC2-S3-ReadOnly-RolePolicy"]
-        Role --- TrustPolicy
-        Role --- PermPolicy
-    end
-
-    subgraph AWS_Compute["Amazon EC2 (Europe - Stockholm eu-north-1)"]
-        Instance["EC2 Instance: IAM-S3-Lab-Instance\n(Amazon Linux 2023)"]
-        IMDS["Instance Metadata Service\n(http://169.254.169.254)"]
-        CLI["AWS CLI v2\n(No static ~/.aws/credentials)"]
-        
-        Instance --- IMDS
-        IMDS -->|Temporary STS Tokens| CLI
-    end
-
-    subgraph Amazon_S3["Amazon Simple Storage Service (S3)"]
-        PermittedBucket["Bucket: iam-ec2-lab-20261115-4827\nObject: AIDS-ASSIGNMENT-SOA.xlsx"]
-        OtherBuckets["Other Buckets in AWS Account"]
-    end
-
-    InstanceProfile["EC2 Instance Profile"]
-    Role ==>|Attached To| InstanceProfile
-    InstanceProfile ==>|Associated With| Instance
-
-    CLI -->|1. List Objects: s3:ListBucket| PermittedBucket
-    CLI -->|2. Download: s3:GetObject| PermittedBucket
-    CLI -.->|3. Upload: s3:PutObject (Blocked 403)| PermittedBucket
-    CLI -.->|4. Global List: s3:ListAllMyBuckets (Blocked 403)| OtherBuckets
-
-    classDef allow fill:#dcfce7,stroke:#16a34a,stroke-width:2px;
-    classDef deny fill:#fee2e2,stroke:#dc2626,stroke-width:2px;
-    classDef aws fill:#e0f2fe,stroke:#0284c7,stroke-width:2px;
-
-    class PermittedBucket allow;
-    class OtherBuckets deny;
-    class Role,Instance,InstanceProfile aws;
-```
-
-### ASCII Architecture Representation
 
 ```text
 +-------------------------------------------------------------------------------+
@@ -270,83 +223,6 @@ For detailed test criteria and troubleshooting instructions, see [verification.m
 
 ---
 
-## Screenshots & Visual Evidence
-
-> [!NOTE]
-> The screenshots below document the experiment execution sequence. For a detailed checklist on replacing placeholder frames with live captures, see [screenshots/README.md](screenshots/README.md).
-
-### 01. AWS Management Console & Region Selection
-![Step 01 - AWS Console](screenshots/01-aws-console.png)
-*Figure 1: AWS Console dashboard confirming region selection `Europe (Stockholm) eu-north-1`.*
-
----
-
-### 02. IAM Dashboard & Role Creation Initiation
-![Step 02 - Create IAM Role](screenshots/02-create-iam-role.png)
-*Figure 2: Accessing IAM Roles dashboard and launching the role creation wizard.*
-
----
-
-### 03. Trusted Entity & Use Case Selection
-![Step 03 - Trusted Entity](screenshots/03-trusted-entity.png)
-*Figure 3: Selecting AWS Service as Trusted Entity and EC2 as the common use case.*
-
----
-
-### 04. Read-Only Permissions Policy Definition
-![Step 04 - Permissions Policy](screenshots/04-permissions-policy.png)
-*Figure 4: Scoping `s3:ListBucket` and `s3:GetObject` to the specific lab bucket.*
-
----
-
-### 05. IAM Role Created Successfully
-![Step 05 - IAM Role Created](screenshots/05-iam-role-created.png)
-*Figure 5: Role summary for `EC2-S3-ReadOnly-Role` confirming trust relationship with `ec2.amazonaws.com`.*
-
----
-
-### 06. EC2 Instances Dashboard
-![Step 06 - EC2 Instance](screenshots/06-ec2-instance.png)
-*Figure 6: Locating target instance `IAM-S3-Lab-Instance` in healthy running state.*
-
----
-
-### 07. Attach IAM Role to EC2 Instance
-![Step 07 - Attach IAM Role](screenshots/07-attach-iam-role.png)
-*Figure 7: Modifying instance IAM role and selecting `EC2-S3-ReadOnly-Role`.*
-
----
-
-### 08. Connect to EC2 Terminal via Instance Connect
-![Step 08 - Connect to EC2](screenshots/08-connect-to-ec2.png)
-*Figure 8: Launching browser terminal session via EC2 Instance Connect.*
-
----
-
-### 09. AWS CLI Verification & STS Identity Check
-![Step 09 - AWS CLI Verification](screenshots/09-aws-cli-verification.png)
-*Figure 9: Verifying AWS CLI v2 and confirming assumed role session via `aws sts get-caller-identity`.*
-
----
-
-### 10. List Permitted S3 Bucket
-![Step 10 - S3 Bucket Access](screenshots/10-s3-bucket-access.png)
-*Figure 10: Successful object listing for `iam-ec2-lab-20261115-4827` contrasting with denied global list.*
-
----
-
-### 11. Read-Only Permission Test (Download Object)
-![Step 11 - Read-Only Permission Test](screenshots/11-read-only-permission-test.png)
-*Figure 11: Downloading `AIDS-ASSIGNMENT-SOA.xlsx` and verifying local file integrity.*
-
----
-
-### 12. Write Denial Test & Final Output
-![Step 12 - Final Output](screenshots/12-final-output.png)
-*Figure 12: Terminal output proving `s3:PutObject` is blocked with `AccessDenied`.*
-
----
-
 ## Results
 
 1. **Authentication Without Static Credentials**: The EC2 instance successfully authenticated against AWS S3 endpoints without storing `AWS_ACCESS_KEY_ID` or `AWS_SECRET_ACCESS_KEY` in environment variables or configuration files.
@@ -418,22 +294,6 @@ aws-ec2-s3-iam-role-experiment/
 ├── commands.md                 # Complete AWS CLI command reference & expected outputs
 ├── verification.md             # Test matrix, validation protocol & troubleshooting
 ├── cleanup.md                  # Safe decommissioning & teardown procedures
-│
-├── screenshots/                # Visual evidence & console capture artifacts
-│   ├── README.md               # Screenshot capture instructions & checklist
-│   ├── 01-aws-console.png
-│   ├── 02-create-iam-role.png
-│   ├── 03-trusted-entity.png
-│   ├── 04-permissions-policy.png
-│   ├── 05-iam-role-created.png
-│   ├── 06-ec2-instance.png
-│   ├── 07-attach-iam-role.png
-│   ├── 08-connect-to-ec2.png
-│   ├── 09-aws-cli-verification.png
-│   ├── 10-s3-bucket-access.png
-│   ├── 11-read-only-permission-test.png
-│   └── 12-final-output.png
-│
 ├── .gitignore                  # Git ignore rules for cloud credentials & keys
 └── LICENSE                     # MIT License
 ```
