@@ -1,0 +1,26 @@
+# AWS credentials and config
+.aws/
+credentials
+config
+
+# Private keys and certificates
+*.pem
+*.id_rsa
+*.key
+*.pub
+
+# Operating System files
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Python / virtual environment caches
+__pycache__/
+*.pyc
+*.pyo
+.venv/
+env/
+
+# Editor / IDE settings
+.vscode/
+.idea/
